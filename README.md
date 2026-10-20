@@ -97,8 +97,9 @@ The script disables each package with `pm disable-user`, and writes a record of 
 still open. If your Fire TV is a different model, start from that list and remove the packages that aren't on
 your TV. Packages that Fire OS protects are refused, and the script shows which ones.
 
-The list leaves these on purpose: Alexa, OTA updates, casting to the TV (DIAL), Netflix, YouTube, Prime Video and
-voice search. The Miracast receiver, MiniTV, Disney+ and Tubi are listed at the bottom, commented out; uncomment
+The list leaves these on purpose: Alexa voice, alarms and Smart Home, OTA updates, casting to the TV (DIAL), Netflix,
+YouTube, Prime Video and voice search. It also turns off the Alexa and system promotion feeds (notifications and
+recommendations) listed in the file. The Miracast receiver, MiniTV, Disney+ and Tubi are listed at the bottom, commented out; uncomment
 the ones you don't use.
 
 ## 4. Choose your dock apps (optional)
@@ -166,7 +167,10 @@ tools/venv/bin/python -I tools/tv.py 'settings delete secure enabled_accessibili
 tools/venv/bin/python -I tools/tv.py 'settings put secure accessibility_enabled 0'
 tools/venv/bin/python -I tools/tv.py 'pm uninstall com.gathin.tvhome'
 
-# 3. Put Amazon's screensaver back:
+# 3. Turn heads-up notifications back on (they were turned off to stop promotion pop-ups):
+tools/venv/bin/python -I tools/tv.py 'settings put global heads_up_notifications_enabled 1'
+
+# 4. Put Amazon's screensaver back:
 tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components com.amazon.ftv.screensaver/.app.services.ScreensaverService'
 ```
 

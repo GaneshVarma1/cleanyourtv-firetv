@@ -28,6 +28,11 @@ com.amazon.perfcollection
 com.amazon.perfc
 com.amazon.dp.logger
 
+# Alexa and system promotions: notification and recommendation feeds (Alexa voice, alarms and Smart Home stay on)
+com.amazon.tv.alexanotifications
+com.amazon.uxnotification
+com.amazon.media.recommendations
+
 # Tutorials, promos and Amazon content preloads
 com.amazon.storm.lightning.tutorial
 com.amazon.tmm.tutorial
