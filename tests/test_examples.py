@@ -9,6 +9,8 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+# In this repo the front page is the Fire TV guide; the full cleanyourtv README lives here.
+MAIN_README = ROOT / "docs" / "UPSTREAM-README.md"
 EXAMPLES = ROOT / "examples"
 PACKAGE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$")
 
@@ -68,7 +70,7 @@ class ExampleListsTest(unittest.TestCase):
         self.assertEqual(len(listed), len(set(listed)), "a folder is listed twice")
 
     def test_readme_table_has_one_row_per_list(self):
-        readme_rows = table_rows(ROOT / "README.md", "| TV | OS |")
+        readme_rows = table_rows(MAIN_README, "| TV | OS |")
         example_rows = table_rows(EXAMPLES / "README.md", "| Folder |")
         self.assertEqual(len(readme_rows), len(example_rows),
                          "README.md TV table and examples/README.md have a different number of rows")
@@ -78,7 +80,7 @@ class ExampleListsTest(unittest.TestCase):
 
     @unittest.skipUnless(os.environ.get("CLEANYOURTV_STRICT"), "counts are fixed up on merge; strict on main only")
     def test_readme_counts(self):
-        text = (ROOT / "README.md").read_text(encoding="utf-8")
+        text = (MAIN_README).read_text(encoding="utf-8")
         n = len(folders())
         self.assertIn(f"{n} TV lists", text, "nav link count is stale")
         self.assertIn(f"{n} TV models", text, "numbers line is stale")
