@@ -112,7 +112,7 @@ systems; see [SHOWCASE.md](SHOWCASE.md) for a webOS port. **Fire TV** cannot giv
 role: Fire OS keeps Home for Amazon's launcher and refuses to disable it. Instead, the launcher comes up over
 Amazon's home screen each time it appears (Fire mode in `build-and-install.sh`), and the debloat list in
 [`examples/amazon-fire-tv-aftdec012e/`](examples/amazon-fire-tv-aftdec012e/) removes the telemetry and preloads.
-Step-by-step guide: [firetv/README.md](firetv/README.md). Details and what was tested: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#fire-tv-fire-os-debloat-works-the-launcher-cannot-take-home). A few China-market TCL sets refuse to
+Step-by-step guide: [the Fire TV guide](../README.md). Details and what was tested: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md#fire-tv-fire-os-debloat-works-the-launcher-cannot-take-home). A few China-market TCL sets refuse to
 install any launcher at all; their lists say so in the header.
 
 Tested lists from contributors, one folder per model in [`examples/`](examples/):
