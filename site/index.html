@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fire TV, quiet mode</title>
+<meta name="description" content="Remove the ads and telemetry from an Amazon Fire TV, and put a clean Apple TV-style home screen with your apps in a dock.">
+<meta property="og:title" content="Fire TV, quiet mode">
+<meta property="og:description" content="Ads and telemetry off, a calm home screen with your apps in a dock. Open source.">
+<meta property="og:image" content="images/after-launcher-over-amazon.jpg">
+<meta name="theme-color" content="#06070d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #eef1ff;
+    --dim: #8d93b3;
+    --bg: #06070d;
+    --panel: rgba(255,255,255,.04);
+    --line: rgba(255,255,255,.09);
+    --glow-a: #7c5cff;
+    --glow-b: #00e0c6;
+    --warm: #ff5d8f;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ink: #0b0d1a; --dim: #565c7a; --bg: #f4f5fb; --panel: rgba(0,0,0,.03); --line: rgba(0,0,0,.09);
+    }
+  }
+  :root[data-theme="light"] {
+    --ink: #0b0d1a; --dim: #565c7a; --bg: #f4f5fb; --panel: rgba(0,0,0,.03); --line: rgba(0,0,0,.09);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+  /* ambient aurora behind everything */
+  .aurora {
+    position: fixed; inset: -20vmax; z-index: -1; pointer-events: none; opacity: .55;
+    background:
+      radial-gradient(40vmax 30vmax at 15% 20%, var(--glow-a), transparent 60%),
+      radial-gradient(35vmax 28vmax at 85% 30%, var(--glow-b), transparent 60%),
+      radial-gradient(38vmax 30vmax at 50% 90%, var(--warm), transparent 60%);
+    filter: blur(40px) saturate(1.2);
+    animation: drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    from { transform: translate3d(-2%, -1%, 0) rotate(0deg); }
+    to   { transform: translate3d(2%, 2%, 0) rotate(6deg); }
+  }
+  .grain {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .07;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .wrap { width: min(1080px, 100% - 32px); margin-inline: auto; }
+  a { color: inherit; }
+
+  /* nav */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+  .brand { font-weight: 700; letter-spacing: .02em; display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--glow-b); box-shadow: 0 0 14px var(--glow-b); animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; transform: scale(.8); } }
+  nav .links a { margin-left: 18px; text-decoration: none; color: var(--dim); font-size: 15px; }
+  nav .links a:hover { color: var(--ink); }
+
+  /* hero */
+  .hero { padding: 40px 0 30px; display: grid; grid-template-columns: 1.15fr .85fr; gap: 40px; align-items: center; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--glow-b); letter-spacing: .14em; text-transform: uppercase; }
+  h1 { font-size: clamp(44px, 7vw, 84px); line-height: .98; margin: 14px 0 18px; letter-spacing: -.03em; font-weight: 700; }
+  h1 .slash { color: var(--dim); font-weight: 400; }
+  h1 em { font-style: normal; background: linear-gradient(90deg, var(--glow-a), var(--glow-b), var(--warm)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { font-size: 19px; color: var(--dim); max-width: 46ch; margin: 0 0 28px; }
+  .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 13px 20px; border-radius: 999px; text-decoration: none; font: inherit; font-weight: 600; cursor: pointer; transition: transform .2s, box-shadow .2s, background .2s; }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px -12px var(--glow-a); }
+  .btn.primary { background: linear-gradient(90deg, var(--glow-a), var(--glow-b)); color: #06070d; border: 0; }
+
+  /* remote */
+  .remote {
+    justify-self: center; width: 260px; height: 520px; border-radius: 48px; position: relative;
+    background: linear-gradient(160deg, #1b1f35, #0c0e18 70%);
+    border: 1px solid var(--line); box-shadow: 0 40px 80px -30px #000, inset 0 1px 0 rgba(255,255,255,.08);
+    transform: rotate(-6deg); animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float { 50% { transform: rotate(-4deg) translateY(-12px); } }
+  .remote .home {
+    position: absolute; top: 46px; left: 50%; transform: translateX(-50%);
+    width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center;
+    background: radial-gradient(circle at 35% 30%, #3a4170, #161a2c);
+    box-shadow: 0 0 0 1px var(--line), 0 0 40px var(--glow-b);
+    font-size: 30px; color: var(--glow-b); text-decoration: none;
+  }
+  .remote .pad {
+    position: absolute; top: 170px; left: 50%; transform: translateX(-50%);
+    width: 190px; height: 190px; border-radius: 50%; background: radial-gradient(circle, #1f2540, #0d101c);
+    border: 1px solid var(--line);
+  }
+  .remote .ok { position: absolute; inset: 50% auto auto 50%; transform: translate(-50%,-50%); width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--glow-a), var(--glow-b)); }
+  .remote .row { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; }
+  .remote .rows { top: 400px; }
+  .remote .key { width: 52px; height: 52px; border-radius: 16px; background: #171b2e; border: 1px solid var(--line); }
+  .remote .glow-ring { position: absolute; inset: -18px; border-radius: 64px; border: 1px dashed rgba(0,224,198,.35); animation: spin 18s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* sections */
+  section { padding: 64px 0; }
+  .label { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--dim); letter-spacing: .16em; text-transform: uppercase; }
+  h2 { font-size: clamp(30px, 4.4vw, 46px); letter-spacing: -.02em; margin: 10px 0 14px; line-height: 1.05; }
+  .sub { color: var(--dim); max-width: 60ch; margin: 0 0 30px; font-size: 17px; }
+
+  /* before / after */
+  .compare { position: relative; border-radius: 22px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 40px 80px -40px #000; aspect-ratio: 16 / 9; user-select: none; touch-action: none; cursor: ew-resize; }
+  .compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .compare .after { clip-path: inset(0 0 0 var(--pos, 50%)); }
+  .handle { position: absolute; top: 0; bottom: 0; left: var(--pos, 50%); width: 2px; background: #fff; box-shadow: 0 0 18px #fff; }
+  .handle::after {
+    content: "⇆"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 46px; height: 46px; border-radius: 50%; background: #fff; color: #06070d; display: grid; place-items: center; font-size: 20px; font-weight: 700;
+  }
+  .tag { position: absolute; top: 14px; font-family: "JetBrains Mono", monospace; font-size: 12px; padding: 6px 10px; border-radius: 999px; background: rgba(6,7,13,.72); color: #fff; backdrop-filter: blur(6px); }
+  .tag.l { left: 14px; } .tag.r { right: 14px; color: var(--glow-b); }
+  .compare-hint { margin-top: 14px; color: var(--dim); font-size: 14px; font-family: "JetBrains Mono", monospace; }
+
+  /* counters */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 34px; }
+  .stat { border: 1px solid var(--line); background: var(--panel); border-radius: 20px; padding: 22px; }
+  .stat b { display: block; font-size: clamp(40px, 6vw, 62px); letter-spacing: -.03em; line-height: 1; background: linear-gradient(90deg, var(--glow-a), var(--glow-b)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .stat span { color: var(--dim); font-size: 15px; }
+
+  /* steps */
+  .steps { display: grid; gap: 14px; counter-reset: s; }
+  .step { border: 1px solid var(--line); background: var(--panel); border-radius: 20px; padding: 22px 22px 22px 84px; position: relative; }
+  .step::before { counter-increment: s; content: counter(s, decimal-leading-zero); position: absolute; left: 22px; top: 20px; font-family: "JetBrains Mono", monospace; font-size: 26px; font-weight: 600; color: var(--glow-b); }
+  .step h3 { margin: 0 0 6px; font-size: 20px; }
+  .step p { margin: 0; color: var(--dim); }
+  .cmd { margin-top: 12px; display: flex; gap: 10px; align-items: center; background: #05060b; border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; font-family: "JetBrains Mono", monospace; font-size: 13.5px; color: #cfd6ff; overflow-x: auto; }
+  .cmd code { white-space: nowrap; flex: 1; }
+  .copy { flex: none; border: 1px solid var(--line); background: #151a2c; color: var(--ink); border-radius: 10px; padding: 6px 10px; cursor: pointer; font: 12px "JetBrains Mono", monospace; }
+  .copy:hover { border-color: var(--glow-b); }
+
+  /* notes */
+  .notes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .note { border: 1px solid var(--line); border-radius: 20px; padding: 22px; background: var(--panel); }
+  .note h3 { margin: 0 0 8px; font-size: 18px; }
+  .note ul { margin: 0; padding-left: 18px; color: var(--dim); }
+  .note li { margin: 4px 0; }
+
+  footer { padding: 40px 0 60px; color: var(--dim); font-size: 14px; border-top: 1px solid var(--line); margin-top: 40px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
+  footer a { color: var(--ink); }
+
+  /* reveal on scroll */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; text-align: left; }
+    .remote { order: -1; width: 200px; height: 400px; }
+    .remote .home { width: 64px; height: 64px; top: 34px; font-size: 24px; }
+    .remote .pad { top: 128px; width: 150px; height: 150px; }
+    .remote .rows { top: 310px; }
+    .stats { grid-template-columns: 1fr; }
+    .notes { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 520px) {
+    nav .links a:not(:last-child) { display: none; }
+    .step { padding-left: 18px; padding-top: 58px; }
+    .step::before { top: 16px; left: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="aurora" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#top"><span class="dot"></span> fire-tv / quiet mode</a>
+    <div class="links">
+      <a href="#compare">Before/after</a>
+      <a href="#steps">Setup</a>
+      <a href="#notes">Limits</a>
+      <a href="https://github.com/GaneshVarma1/cleanyourtv-firetv">Source</a>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div>
+      <div class="eyebrow">Amazon Fire TV · Fire OS · open source</div>
+      <h1>Your TV, <em>quieter</em><span class="slash">.</span></h1>
+      <p class="lede">Take the ads and telemetry out of your Fire TV, and put a calm, Apple TV-style home screen on top of it with your apps in a dock. One command at a time, and every step can be undone.</p>
+      <div class="cta">
+        <a class="btn primary" href="#steps">Start the setup</a>
+        <a class="btn" href="#compare">See the difference</a>
+      </div>
+    </div>
+    <div class="remote" aria-hidden="true">
+      <div class="glow-ring"></div>
+      <a class="home" href="#compare">⌂</a>
+      <div class="pad"><div class="ok"></div></div>
+      <div class="row rows"><span class="key"></span><span class="key"></span><span class="key"></span></div>
+    </div>
+  </header>
+
+  <section id="compare" class="reveal">
+    <div class="label">01 · the difference</div>
+    <h2>Drag to compare.</h2>
+    <p class="sub">Left: the stock home screen, sponsored rows and all. Right: the same TV with the launcher up front. Amazon's home is still installed underneath; it's just covered.</p>
+    <div class="compare" id="compareBox" style="--pos:50%">
+      <img src="images/before-amazon-home.jpg" alt="Amazon's home screen with sponsored rows" loading="lazy">
+      <img class="after" src="images/after-launcher-over-amazon.jpg" alt="The launcher over Amazon's home, with the clock, dock and apps" loading="lazy">
+      <div class="handle"></div>
+      <span class="tag l">before · stock</span>
+      <span class="tag r">after · quiet</span>
+    </div>
+    <div class="compare-hint">tip: drag the handle, or use ← → when the slider has focus</div>
+
+    <div class="stats">
+      <div class="stat reveal"><b data-count="16">0</b><span>packages turned off: telemetry, ACR, shopping and tutorials. Nothing uninstalled.</span></div>
+      <div class="stat reveal"><b data-count="4">0</b><span>apps pinned in your dock, in the order you choose.</span></div>
+      <div class="stat reveal"><b data-count="1">0</b><span>clock screensaver, instead of the one that shows promotions.</span></div>
+    </div>
+  </section>
+
+  <section id="steps" class="reveal">
+    <div class="label">02 · the setup</div>
+    <h2>Five steps. Then it's quiet.</h2>
+    <p class="sub">You run these from a Mac or Linux computer on the same Wi-Fi as the TV. Set the TV's IP once and reuse it.</p>
+    <div class="steps">
+      <div class="step">
+        <h3>Turn on ADB on the Fire TV</h3>
+        <p>Settings → My Fire TV → About, select the device name seven times. Then Developer Options → ADB Debugging, and note the IP under About → Network.</p>
+      </div>
+      <div class="step">
+        <h3>Get the repo and check the connection</h3>
+        <p>Clone it, make the ADB environment, and probe the TV. You should see Amazon as the brand.</p>
+        <div class="cmd"><code>git clone https://github.com/GaneshVarma1/cleanyourtv-firetv.git</code><button class="copy" data-copy="git clone https://github.com/GaneshVarma1/cleanyourtv-firetv.git">copy</button></div>
+        <div class="cmd"><code>export TV_HOST=192.168.1.50 &amp;&amp; tools/venv/bin/python -I tools/tv.py --probe</code><button class="copy" data-copy="export TV_HOST=192.168.1.50 && tools/venv/bin/python -I tools/tv.py --probe">copy</button></div>
+      </div>
+      <div class="step">
+        <h3>Remove the telemetry and ads</h3>
+        <p>Applies the tested list. Each package is disabled, not uninstalled, and the previous state is saved so you can undo it.</p>
+        <div class="cmd"><code>tools/disable.sh examples/amazon-fire-tv-aftdec012e/debloat.txt</code><button class="copy" data-copy="tools/disable.sh examples/amazon-fire-tv-aftdec012e/debloat.txt">copy</button></div>
+      </div>
+      <div class="step">
+        <h3>Choose your dock (optional)</h3>
+        <p>Edit <code>dock_apps</code> in <code>launcher/app/src/main/res/values/config.xml</code> with the package names you use.</p>
+      </div>
+      <div class="step">
+        <h3>Build and install the launcher</h3>
+        <p>The script sees that Amazon holds Home and installs in Fire mode: Amazon's launcher stays on, and the launcher comes up when you press Home.</p>
+        <div class="cmd"><code>cd launcher &amp;&amp; TV_HOST=$TV_HOST ./build-and-install.sh</code><button class="copy" data-copy="cd launcher && TV_HOST=$TV_HOST ./build-and-install.sh">copy</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="notes" class="reveal">
+    <div class="label">03 · the honest part</div>
+    <h2>What it can't do.</h2>
+    <p class="sub">Fire OS keeps the Home button for Amazon's launcher, and won't let it be disabled. So this doesn't replace the home screen. It covers it.</p>
+    <div class="notes">
+      <div class="note">
+        <h3>What works</h3>
+        <ul>
+          <li>Telemetry, ACR, shopping and preload packages off</li>
+          <li>Home opens the launcher, from apps and after a reboot</li>
+          <li>Streaming apps keep working after the list is applied</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>What to expect</h3>
+        <ul>
+          <li>A brief flash of Amazon's home before the launcher covers it</li>
+          <li>Amazon's home keeps running in the background</li>
+          <li>Tested on one Fire TV model; others may need other package names</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Built on <a href="https://github.com/Gathin23/cleanyourtv">cleanyourtv</a> by Gathin · MIT License</span>
+    <span><a href="https://github.com/GaneshVarma1/cleanyourtv-firetv">source on GitHub</a> · <a href="#top">back to top</a></span>
+  </footer>
+</div>
+
+<script>
+  // before / after slider: pointer drag and arrow keys
+  (function () {
+    var box = document.getElementById('compareBox');
+    var dragging = false;
+    function setPos(clientX) {
+      var r = box.getBoundingClientRect();
+      var p = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
+      box.style.setProperty('--pos', p + '%');
+    }
+    box.addEventListener('pointerdown', function (e) { dragging = true; box.setPointerCapture(e.pointerId); setPos(e.clientX); });
+    box.addEventListener('pointermove', function (e) { if (dragging) setPos(e.clientX); });
+    box.addEventListener('pointerup', function () { dragging = false; });
+    box.addEventListener('pointercancel', function () { dragging = false; });
+    box.tabIndex = 0;
+    box.setAttribute('role', 'slider');
+    box.setAttribute('aria-label', 'Compare before and after');
+    box.addEventListener('keydown', function (e) {
+      var cur = parseFloat(getComputedStyle(box).getPropertyValue('--pos')) || 50;
+      if (e.key === 'ArrowLeft') { box.style.setProperty('--pos', Math.max(0, cur - 5) + '%'); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { box.style.setProperty('--pos', Math.min(100, cur + 5) + '%'); e.preventDefault(); }
+    });
+  })();
+
+  // counters
+  (function () {
+    var nums = document.querySelectorAll('[data-count]');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var el = en.target, end = +el.dataset.count, t0 = null, dur = 900;
+        function step(ts) {
+          if (!t0) t0 = ts;
+          var k = Math.min(1, (ts - t0) / dur);
+          el.textContent = Math.round(end * (1 - Math.pow(1 - k, 3)));
+          if (k < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+        io.unobserve(el);
+      });
+    }, { threshold: .6 });
+    nums.forEach(function (n) { io.observe(n); });
+  })();
+
+  // reveal on scroll
+  (function () {
+    var items = document.querySelectorAll('.reveal');
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, { threshold: .12 });
+    items.forEach(function (i) { io.observe(i); });
+  })();
+
+  // copy buttons
+  document.querySelectorAll('.copy').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var text = b.dataset.copy;
+      try {
+        navigator.clipboard.writeText(text).then(function () { flash(b, 'copied'); }, function () { flash(b, 'select'); });
+      } catch (err) { flash(b, 'select'); }
+    });
+  });
+  function flash(b, msg) {
+    var old = b.textContent; b.textContent = msg;
+    setTimeout(function () { b.textContent = old; }, 1400);
+  }
+</script>
+</body>
+</html>
